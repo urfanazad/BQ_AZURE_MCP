@@ -1,0 +1,29 @@
+{
+  "project_id": "your-gcp-project-id",
+  "region": "us",
+  "cost_per_tb": 5.0,
+  "budget": {
+    "monthly_usd": 5000,
+    "alert_threshold": 0.80,
+    "hard_limit": false
+  },
+  "optimization": {
+    "auto_optimize": false,
+    "min_cost_threshold": 1.0,
+    "max_queries_to_analyze": 100
+  },
+  "storage": {
+    "unused_table_days": 90,
+    "min_table_size_gb": 1.0
+  },
+  "monitoring": {
+    "enable_slack": false,
+    "enable_jira": false,
+    "enable_email": false
+  },
+  "data_retention": {
+    "query_logs_days": 90,
+    "cost_data_days": 365,
+    "alert_history_days": 180
+  }
+}
