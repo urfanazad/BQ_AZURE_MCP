@@ -104,7 +104,7 @@ def main():
     print("Next Steps:")
     print("="*60)
     print("1. Ensure all required variables for your chosen data source are set correctly.")
-    print("2. Run the MCP server: python bigquery_finops_mcp.py")
+    print("2. Run the MCP server: python mcp_server.py")
     print("="*60 + "\n")
 
 if __name__ == "__main__":

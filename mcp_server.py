@@ -29,7 +29,7 @@ from utils import handle_errors
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initialize the MCP server
-server = Server("finops-mcp")
+server = Server("azure-bq-mcp-optimiser")
 
 # Global variable for the data source
 DATA_SOURCE: Optional[BaseDataSource] = None
@@ -200,7 +200,7 @@ async def main():
 
     # Determine which data source to use based on the environment variable
     data_source_type = os.getenv("DATA_SOURCE_TYPE", "bigquery").lower()
-    
+
     if data_source_type == "bigquery":
         project_id = os.getenv("GCP_PROJECT_ID")
         region = os.getenv("GCP_REGION", "us")
@@ -218,8 +218,8 @@ async def main():
             read_stream,
             write_stream,
             InitializationOptions(
-                server_name="finops-mcp",
-                server_version="0.2.0",
+                server_name="azure-bq-mcp-optimiser",
+                server_version="1.0.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},
