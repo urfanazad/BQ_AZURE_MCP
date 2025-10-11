@@ -41,3 +41,8 @@ class BaseDataSource(ABC):
     async def get_cost_by_user(self, days: int) -> Dict[str, Any]:
         """Get cost breakdown by user."""
         pass
+
+    @abstractmethod
+    async def natural_language_to_sql(self, question: str) -> Dict[str, Any]:
+        """Translate a natural language question into a SQL query."""
+        pass

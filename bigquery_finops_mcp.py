@@ -16,6 +16,7 @@ from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from pydantic import AnyUrl
 
+from data_sources.azuresql import AzureSQLDataSource
 from data_sources.base import BaseDataSource
 from data_sources.bigquery import BigQueryDataSource
 from utils import handle_errors
@@ -130,6 +131,17 @@ async def handle_list_tools() -> list[types.Tool]:
                 },
             },
         ),
+        types.Tool(
+            name="natural_language_to_sql",
+            description="Translate a natural language question into a SQL query",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string", "description": "The question to translate"},
+                },
+                "required": ["question"],
+            },
+        ),
     ]
 
 @server.call_tool()
@@ -171,6 +183,8 @@ async def handle_call_tool(name: str, arguments: dict | None) -> list[types.Text
         }
     elif name == "get_cost_by_user":
         result = await DATA_SOURCE.get_cost_by_user(arguments.get("days", 30))
+    elif name == "natural_language_to_sql":
+        result = await DATA_SOURCE.natural_language_to_sql(arguments.get("question", ""))
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -184,13 +198,18 @@ async def main():
     """Main entry point for the FinOps MCP server."""
     global DATA_SOURCE
 
-    # Determine which data source to use
-    # For now, we'll default to BigQuery, but this could be extended
-    # to support other sources based on an environment variable.
-    project_id = os.getenv("GCP_PROJECT_ID")
-    region = os.getenv("GCP_REGION", "us")
+    # Determine which data source to use based on the environment variable
+    data_source_type = os.getenv("DATA_SOURCE_TYPE", "bigquery").lower()
     
-    DATA_SOURCE = BigQueryDataSource(project_id=project_id, region=region)
+    if data_source_type == "bigquery":
+        project_id = os.getenv("GCP_PROJECT_ID")
+        region = os.getenv("GCP_REGION", "us")
+        DATA_SOURCE = BigQueryDataSource(project_id=project_id, region=region)
+    elif data_source_type == "azuresql":
+        DATA_SOURCE = AzureSQLDataSource()
+    else:
+        raise ValueError(f"Unsupported DATA_SOURCE_TYPE: {data_source_type}")
+
     await DATA_SOURCE.connect()
 
     # Run the server using stdin/stdout streams

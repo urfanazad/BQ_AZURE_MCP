@@ -277,6 +277,9 @@ class BigQueryDataSource(BaseDataSource):
                 "severity": "high",
                 "savings_percent": 40
             }
+
+    async def natural_language_to_sql(self, question: str) -> Dict[str, Any]:
+        return {"error": "Natural language to SQL is not supported for BigQuery."}
         if "CROSS JOIN" in query_upper:
             return {
                 "suggestion": "Replace CROSS JOIN with proper JOIN condition to avoid cartesian product",

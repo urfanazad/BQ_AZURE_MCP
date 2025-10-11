@@ -1,132 +1,111 @@
 #!/usr/bin/env python3
 """
-Verify that .env file is properly loaded
-Run this before starting the MCP server
+Verify that the environment is properly configured.
+Run this before starting the MCP server.
 """
 
 import os
 from pathlib import Path
 
-print("="*60)
-print("Environment Variables Verification")
-print("="*60)
-
-# Check if .env file exists
-env_file = Path(".env")
-if env_file.exists():
-    print(f"\n✓ .env file found at: {env_file.absolute()}")
-else:
-    print(f"\n✗ .env file NOT found")
-    print(f"  Expected location: {env_file.absolute()}")
-    print(f"  Please create .env file in the same directory as the MCP server")
-
-# Try loading dotenv
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-    print("✓ python-dotenv is installed")
-except ImportError:
-    print("✗ python-dotenv is NOT installed")
-    print("  Install with: pip install python-dotenv")
-    exit(1)
-
-print("\n" + "-"*60)
-print("Environment Variables Status:")
-print("-"*60)
-
-# Check critical variables
-critical_vars = {
-    "GOOGLE_APPLICATION_CREDENTIALS": "Path to service account key",
-    "GCP_PROJECT_ID": "Google Cloud Project ID"
-}
-
-for var, description in critical_vars.items():
-    value = os.getenv(var)
-    if value:
-        # Mask sensitive parts
-        if "CREDENTIALS" in var or "KEY" in var or "SECRET" in var:
-            display_value = value[:20] + "..." if len(value) > 20 else value
+# Helper function to print status
+def print_status(var, description, is_set, is_sensitive=False):
+    if is_set:
+        value = os.getenv(var)
+        display_value = ""
+        if is_sensitive:
+            display_value = f": {value[:4]}..." if value and len(value) > 4 else ": (set)"
         else:
-            display_value = value
-        print(f"✓ {var}")
+            display_value = f": {value}"
+        print(f"✓ {var}{display_value}")
         print(f"  {description}")
-        print(f"  Value: {display_value}")
-        
-        # Verify file exists for path variables
-        if "CREDENTIALS" in var and value:
-            if Path(value).exists():
-                print(f"  ✓ File exists")
-            else:
-                print(f"  ✗ File NOT found at specified path")
     else:
         print(f"✗ {var} - NOT SET")
         print(f"  {description}")
     print()
 
-# Check optional variables
-print("-"*60)
-print("Optional Variables:")
-print("-"*60)
+def main():
+    print("="*60)
+    print("Environment Variables Verification")
+    print("="*60)
 
-optional_vars = {
-    "MONTHLY_BUDGET_USD": "Monthly spending budget",
-    "ALERT_THRESHOLD": "Alert threshold (0-1)",
-    "LOG_LEVEL": "Logging level",
-    "USE_MOCK_DATA": "Use mock data instead of real BigQuery",
-    "SLACK_BOT_TOKEN": "Slack integration token",
-    "JIRA_URL": "Jira instance URL",
-    "ENABLE_SLACK_NOTIFICATIONS": "Enable Slack alerts",
-    "ENABLE_JIRA_INTEGRATION": "Enable Jira integration"
-}
-
-for var, description in optional_vars.items():
-    value = os.getenv(var)
-    if value:
-        # Mask sensitive parts
-        if "TOKEN" in var or "KEY" in var or "SECRET" in var or "PASSWORD" in var:
-            display_value = value[:10] + "***" if len(value) > 10 else "***"
-        else:
-            display_value = value
-        print(f"✓ {var}: {display_value}")
+    # Check if .env file exists
+    env_file = Path(".env")
+    if not env_file.exists():
+        print(f"\n✗ .env file NOT found at {env_file.absolute()}")
+        print("  Please create it in the same directory as the MCP server.")
+        return
     else:
-        print(f"  {var}: Not set (optional)")
+        print(f"\n✓ .env file found at: {env_file.absolute()}")
 
-print("\n" + "="*60)
-print("Summary:")
-print("="*60)
+    # Try loading dotenv
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        print("✓ python-dotenv is installed and loaded.")
+    except ImportError:
+        print("✗ python-dotenv is NOT installed. Please run: pip install python-dotenv")
+        return
 
-# Quick test of BigQuery connection
-try:
-    from google.cloud import bigquery
-    
-    creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    project_id = os.getenv("GCP_PROJECT_ID")
-    
-    if creds_path and Path(creds_path).exists():
-        print("\nTesting BigQuery connection...")
-        client = bigquery.Client(project=project_id)
-        print(f"✓ Successfully connected to project: {client.project}")
-    elif not creds_path:
-        print("\n→ No credentials path set, trying Application Default Credentials...")
+    print("\n" + "-"*60)
+    print("Data Source Configuration")
+    print("-"*60)
+
+    data_source_type = os.getenv("DATA_SOURCE_TYPE", "bigquery").lower()
+    print_status("DATA_SOURCE_TYPE", "The type of data source to use ('bigquery' or 'azuresql')", True)
+
+    if data_source_type == "bigquery":
+        print("\n" + "-"*60)
+        print("BigQuery Configuration")
+        print("-"*60)
+        print_status("GCP_PROJECT_ID", "Your Google Cloud Project ID", os.getenv("GCP_PROJECT_ID"))
+        print_status("GOOGLE_APPLICATION_CREDENTIALS", "Path to your GCP service account key file (optional)", os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+
+        # Test BigQuery connection
         try:
-            client = bigquery.Client(project=project_id)
-            print(f"✓ Connected using Application Default Credentials")
-            print(f"  Project: {client.project}")
+            from google.cloud import bigquery
+            print("\nTesting BigQuery connection...")
+            client = bigquery.Client()
+            print(f"✓ Successfully connected to BigQuery project: {client.project}")
         except Exception as e:
-            print(f"✗ Could not connect: {e}")
-    else:
-        print(f"\n✗ Credentials file not found at: {creds_path}")
-        
-except ImportError:
-    print("\n✗ google-cloud-bigquery not installed")
-    print("  Install with: pip install google-cloud-bigquery")
-except Exception as e:
-    print(f"\n✗ BigQuery connection test failed: {e}")
+            print(f"✗ BigQuery connection test failed: {e}")
 
-print("\n" + "="*60)
-print("Next Steps:")
-print("="*60)
-print("1. Fix any issues marked with ✗")
-print("2. Run the MCP server: python bigquery_finops_mcp.py")
-print("3. Check the startup output for configuration details")
-print("="*60 + "\n")
+    elif data_source_type == "azuresql":
+        print("\n" + "-"*60)
+        print("Azure SQL Configuration")
+        print("-"*60)
+        print_status("AZURE_SQL_SERVER", "Your Azure SQL server address", os.getenv("AZURE_SQL_SERVER"))
+        print_status("AZURE_SQL_DATABASE", "Your Azure SQL database name", os.getenv("AZURE_SQL_DATABASE"))
+        print_status("AZURE_SQL_USERNAME", "Your Azure SQL username", os.getenv("AZURE_SQL_USERNAME"))
+        print_status("AZURE_SQL_PASSWORD", "Your Azure SQL password", os.getenv("AZURE_SQL_PASSWORD"), is_sensitive=True)
+
+        # Test Azure SQL connection
+        try:
+            import pyodbc
+            print("\nTesting Azure SQL connection...")
+            conn_str = (
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={os.getenv('AZURE_SQL_SERVER')};"
+                f"DATABASE={os.getenv('AZURE_SQL_DATABASE')};"
+                f"UID={os.getenv('AZURE_SQL_USERNAME')};"
+                f"PWD={os.getenv('AZURE_SQL_PASSWORD')}"
+            )
+            with pyodbc.connect(conn_str, timeout=5) as conn:
+                print("✓ Successfully connected to Azure SQL.")
+        except ImportError:
+            print("✗ pyodbc is not installed. Please run: pip install pyodbc")
+        except Exception as e:
+            print(f"✗ Azure SQL connection test failed: {e}")
+
+    else:
+        print(f"\n✗ Invalid DATA_SOURCE_TYPE: '{data_source_type}'. Must be 'bigquery' or 'azuresql'.")
+
+
+    print("\n" + "="*60)
+    print("Next Steps:")
+    print("="*60)
+    print("1. Ensure all required variables for your chosen data source are set correctly.")
+    print("2. Run the MCP server: python bigquery_finops_mcp.py")
+    print("="*60 + "\n")
+
+if __name__ == "__main__":
+    main()
