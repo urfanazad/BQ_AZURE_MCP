@@ -455,14 +455,19 @@ async def get_cost_by_user(days: int) -> dict:
             SUM(total_bytes_billed) / POW(10, 12) * 5 as cost_usd,
             COUNT(*) as query_count
         FROM `{PROJECT_ID}.region-us.INFORMATION_SCHEMA.JOBS_BY_PROJECT`
-        WHERE creation_time >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {days} DAY)
+        WHERE creation_time >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @days DAY)
             AND statement_type = 'SELECT'
             AND state = 'DONE'
         GROUP BY user_email
         ORDER BY cost_usd DESC
         LIMIT 20
         """
-        job = BQ_CLIENT.query(query)
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("days", "INT64", days),
+            ]
+        )
+        job = BQ_CLIENT.query(query, job_config=job_config)
         results = list(job.result())
         
         return {
