@@ -5,6 +5,14 @@ mcp>=0.9.0
 google-cloud-bigquery>=3.11.0
 google-auth>=2.23.0
 
+# Azure SQL Client
+pyodbc>=4.0.39
+
+# Azure SDK
+azure-identity>=1.15.0
+azure-monitor-query>=1.2.0
+openai>=1.3.0
+
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
