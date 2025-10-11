@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import DefaultAzureCredential
-from azure.monitor.query import MetricsQueryClient
+from azure.monitor.querymetrics import MetricsClient
 import openai
 from .base import BaseDataSource
 
@@ -60,7 +60,7 @@ class AzureSQLDataSource(BaseDataSource):
         # Connect to Azure Monitor
         try:
             credential = DefaultAzureCredential()
-            self.monitor_client = MetricsQueryClient(credential)
+            self.monitor_client = MetricsClient(credential)
             logging.info("Connected to Azure Monitor.")
         except (ClientAuthenticationError, ImportError) as e:
             logging.error(f"Could not connect to Azure Monitor: {e}")
