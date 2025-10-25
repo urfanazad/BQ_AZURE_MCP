@@ -7,6 +7,7 @@ from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import DefaultAzureCredential
 from azure.monitor.querymetrics import MetricsClient
 import openai
+import sqlparse
 from .base import BaseDataSource
 
 try:
@@ -219,10 +220,19 @@ class AzureSQLDataSource(BaseDataSource):
                 "description": "SQL Server cost analysis is based on resource consumption (CPU, I/O), not data scanned."
             }
 
+        # Security measure: Use sqlparse to validate the query
         try:
+            parsed = sqlparse.parse(query)
+            if len(parsed) != 1 or parsed[0].get_type() != 'SELECT':
+                return {"error": "Invalid query provided. Only single SELECT statements are allowed."}
+
+            validated_query = parsed[0].to_unicode()
+
             cursor = self.connection.cursor()
-            cursor.execute(f"SET SHOWPLAN_XML ON; {query}; SET SHOWPLAN_XML OFF;")
+            cursor.execute("SET SHOWPLAN_XML ON;")
+            cursor.execute(validated_query)
             plan = cursor.fetchone()[0]
+            cursor.execute("SET SHOWPLAN_XML OFF;")
             return {"execution_plan": plan}
         except Exception as e:
             logging.error(f"Error getting execution plan: {e}")

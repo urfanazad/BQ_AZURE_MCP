@@ -24,3 +24,4 @@ asyncio
 python-dotenv>=1.0.0  # Environment variable management
 slack-sdk>=3.23.0     # Slack integration
 jira>=3.5.0          # Jira integration
+sqlparse
